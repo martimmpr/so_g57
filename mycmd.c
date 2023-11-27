@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
     int args = argc - 1;
 
     //Verifica se não existe argumentos além do comando
-    if (args == 0) {
+    if (args == 1 && strcmp(argv[1], "top") == 0) {
         executeCommandTop();
         return 0;
     }
