@@ -19,11 +19,9 @@ void printTopInfo() {
     double loadavg_1min, loadavg_5min, loadavg_15min;
     fscanf(loadavg_file, "%lf %lf %lf", &loadavg_1min, &loadavg_5min, &loadavg_15min);
     fclose(loadavg_file);
+    printf("Carga media do sistema: %.2f %.2f %.2f\n", loadavg_1min, loadavg_5min, loadavg_15min);
 
-    //Imprime as informações
-    printf("Load Average: %.2f %.2f %.2f\n", loadavg_1min, loadavg_5min, loadavg_15min);
-
-    //Conta o número total de processos e o número de processos em execução (running)
+    //Conta o número total de processos e em execução
     int total_processes = 0, running_processes = 0;
 
     //Abre o diretório /proc para obter informações sobre os processos
@@ -41,10 +39,10 @@ void printTopInfo() {
         if (atoi(entry->d_name) > 0) {
             total_processes++;
 
-            //Constrói o caminho completo do diretório do processo
+            //Faz o caminho completo do diretório do processo
             char proc_path[512];
             if (snprintf(proc_path, sizeof(proc_path), "/proc/%s/status", entry->d_name) >= sizeof(proc_path)) {
-                fprintf(stderr, "Erro: Caminho do processo truncado\n");
+                fprintf(stderr, "Erro: Caminho do processo incompleto!\n");
                 exit(EXIT_FAILURE);
             }
             //Abre o arquivo /proc/[PID]/status para obter o estado do processo
@@ -67,17 +65,78 @@ void printTopInfo() {
         }
     }
 
+    //Fecha o diretório /proc onde se obtem as informações sobre os processos
     closedir(proc_dir);
 
     //Imprime as informações sobre os processos
-    printf("Total processes: %d\nRunning processes: %d\n", total_processes, running_processes);
+    printf("Total de processos: %d\nProcessos em execução: %d\n", total_processes, running_processes);
+
+    //Abre novamente o diretório /proc para obter informações detalhadas sobre os processos em execução
+    DIR *proc_dir_running = opendir("/proc");
+    if (proc_dir_running == NULL) {
+        perror("opendir");
+        exit(EXIT_FAILURE);
+    }
+
+    //Exibe informações detalhadas sobre os processos em execução
+    printf("\nProcessos em execução:\n");
+    printf("%-8s %-8s %-20s %s\n", "PID", "STATE", "USERNAME", "COMMAND");
+
+    int count_processes = 0;
+
+    //Reinicializa o diretório de processos para percorrê-lo novamente
+    rewinddir(proc_dir_running);
+    while ((entry = readdir(proc_dir_running)) != NULL && count_processes < 20) {
+        if (atoi(entry->d_name) > 0) {
+            char proc_path[512];
+            if (snprintf(proc_path, sizeof(proc_path), "/proc/%s/status", entry->d_name) >= sizeof(proc_path)) {
+                fprintf(stderr, "Erro: Caminho do processo incompleto!\n");
+                exit(EXIT_FAILURE);
+            }
+            FILE *status_file = fopen(proc_path, "r");
+            if (status_file == NULL) {
+                perror("fopen");
+                exit(EXIT_FAILURE);
+            }
+
+            char status[256];
+            while (fscanf(status_file, "%*s %s", status) == 1) {
+                if (strcmp(status, "R") == 0) {
+                    char username[256];
+                    fscanf(status_file, "%*s %*s %*s %*s %*s %*s %*s %s", username);
+
+                    char cmdline[512];
+                    if (snprintf(proc_path, sizeof(proc_path), "/proc/%s/cmdline", entry->d_name) >= sizeof(proc_path)) {
+                        fprintf(stderr, "Erro: Caminho do processo incompleto!\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    FILE *cmdline_file = fopen(proc_path, "r");
+                    if (cmdline_file == NULL) {
+                        perror("fopen");
+                        exit(EXIT_FAILURE);
+                    }
+                    fscanf(cmdline_file, "%s", cmdline);
+                    fclose(cmdline_file);
+
+                    //Imprime as informações detalhadas do processo em execução
+                    printf("%-8s %-8s %-20s %s\n", entry->d_name, status, username, cmdline);
+
+                    count_processes++;
+                    break;
+                }
+            }
+            fclose(status_file);
+        }
+    }
+
+    closedir(proc_dir_running);
 }
 
 void executeCommandTop() {
     char input;
 
     do {
-        //Exibe informações sobre o sistema e os processos
+        //Chama as informações sobre o sistema e os processos
         printTopInfo();
 
         //Espera 10 segundos antes de atualizar as informações
@@ -86,10 +145,9 @@ void executeCommandTop() {
         //Limpa a consola
         system("clear");
 
+        //Imprime a situacao do comando
         printf("Insira 'q' para terminar ou outra tecla para continuar: ");
-        //Limpa o buffer do teclado
-        while (getchar() != '\n');
-        //Lê o caractere do usuário
+        //Lê o char introduzido pelo utilizador
         scanf("%c", &input);
     } while (input != 'q');
 }
