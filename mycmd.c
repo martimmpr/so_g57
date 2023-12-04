@@ -187,7 +187,21 @@ void executeCommandWithInputRedirection(char *cmd, char **args, char *inputFile)
         //Código do processo filho
         
         //Abre o ficheiro no modo "read"
-        freopen(inputFile, "r", stdin);
+        int fd = open(inputFile, O_RDONLY);
+        if (fd == -1) {
+            perror("open");
+            exit(EXIT_FAILURE);
+        }
+
+        //Redireciona a entrada padrao para o arquivo
+        if (dup2(fd, STDIN_FILENO) == -1) {
+            perror("dup2");
+            close(fd);
+            exit(EXIT_FAILURE);
+        }
+
+        //Fecha o descritor do arquivo não necessario apos a duplicacao
+        close(fd);
 
         //Executa o comando
         execvp(cmd, args);
@@ -218,7 +232,21 @@ void executeCommandWithOutputRedirection(char *cmd, char **args, char *outputFil
         //Código do processo filho
         
         //Abre o ficheiro no modo "write"
-        freopen(outputFile, "w", stdout);
+        int fd = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        if (fd == -1) {
+            perror("open");
+            exit(EXIT_FAILURE);
+        }
+
+        //Redireciona a saida padrao para o arquivo
+        if (dup2(fd, STDOUT_FILENO) == -1) {
+            perror("dup2");
+            close(fd);
+            exit(EXIT_FAILURE);
+        }
+
+        //Fecha o descritor do arquivo não necessario apos a duplicacao
+        close(fd);
 
         //Executa o comando
         execvp(cmd, args);
