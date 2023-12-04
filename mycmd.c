@@ -186,7 +186,7 @@ void executeCommandWithInputRedirection(char *cmd, char **args, char *inputFile)
     if (pid == 0) {
         //Código do processo filho
         
-        //Abre o ficheiro no modo "read"
+        //Abre o descritor do ficheiro no modo "read"
         int fd = open(inputFile, O_RDONLY);
         if (fd == -1) {
             perror("open");
@@ -200,7 +200,7 @@ void executeCommandWithInputRedirection(char *cmd, char **args, char *inputFile)
             exit(EXIT_FAILURE);
         }
 
-        //Fecha o descritor do arquivo não necessario apos a duplicacao
+        //Fecha o descritor não necessario apos a duplicacao
         close(fd);
 
         //Executa o comando
@@ -245,7 +245,7 @@ void executeCommandWithOutputRedirection(char *cmd, char **args, char *outputFil
             exit(EXIT_FAILURE);
         }
 
-        //Fecha o descritor do arquivo não necessario apos a duplicacao
+        //Fecha o descritor não necessario apos a duplicacao
         close(fd);
 
         //Executa o comando
@@ -306,11 +306,12 @@ void executeCommandWithPiping(char *cmd1, char **args1, char *cmd2, char **args2
     pid2 = fork();
     if (pid2 == 0) {
         //Código do processo filho do comando 2
+
         //Fecha o "write" desnecessario no fim do "pipe"  
         close(pipefd[1]);  
         //Redireciona o "stdin" para o "read" no fim do "pipe"
         dup2(pipefd[0], STDIN_FILENO); 
-         //Fecha o "read" no fim do "pipe"   
+        //Fecha o "read" no fim do "pipe"   
         close(pipefd[0]); 
 
         //Executa o comando 2
