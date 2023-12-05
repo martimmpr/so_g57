@@ -8,51 +8,70 @@
 #include <dirent.h>
 
 void printTopInfo() {
-    //Abre o arquivo /proc/loadavg para obter informações sobre a carga média do CPU
+    //Abre o ficheiro no /proc/loadavg para obter as informacoes acerca da carga media do CPU
     FILE *loadavg_file = fopen("/proc/loadavg", "r");
+
+    //Verifica se o ficheiro /proc/loadavg existe e o seu processo foi bem-sucedido
     if (loadavg_file == NULL) {
         perror("fopen");
         exit(EXIT_FAILURE);
     }
 
-    //Lê as informações sobre a carga média do CPU
+    //Variaveis relativas a guardar as informacoes acerca a carga media do CPU
     double loadavg_1min, loadavg_5min, loadavg_15min;
-    fscanf(loadavg_file, "%lf %lf %lf", &loadavg_1min, &loadavg_5min, &loadavg_15min);
-    fclose(loadavg_file);
-    printf("Carga media do sistema: %.2f %.2f %.2f\n", loadavg_1min, loadavg_5min, loadavg_15min);
 
-    //Conta o número total de processos e em execução
+    //Associa cada valor respetivamente a informacao que transmite
+    fscanf(loadavg_file, "%lf %lf %lf", &loadavg_1min, &loadavg_5min, &loadavg_15min);
+
+    //Fecha o ficheiro no /proc/loadavg
+    fclose(loadavg_file);
+
+    //Mostra ao utilizador as informacoes acerca da carga media do CPU para os minutos 1, 5 e 15 minutos
+    printf("Carga media do CPU: %.2f %.2f %.2f\n", loadavg_1min, loadavg_5min, loadavg_15min);
+
+    //Variaveis que armazenam o numero total de processos e os em execucao.
     int total_processes = 0, running_processes = 0;
 
-    //Abre o diretório /proc para obter informações sobre os processos
+    //Abre o diretorio /proc para obter informacoes sobre os processos
     DIR *proc_dir = opendir("/proc");
+
+    //Verifica se o diretorio /proc existe e o seu processo foi bem-sucedido
     if (proc_dir == NULL) {
         perror("opendir");
         exit(EXIT_FAILURE);
     }
 
+    //Estrutura que guarda informacoes relativas ao diretorio, bem como o nome de diretorios ou ficheiros presentes nesta (d_name)
+    //ino_t d_ino; - Número do inode (Armazena informacoes como: proprietário, permissoes (r-w-e), entre outros..)
+    //off_t d_off; - Deslocamento (Armazena o deslocamento para a proxima entrada no diretorio)
+    //unsigned short d_reclen; - Tamanho desta estrutura (Armazena o tamanho da estrutura de dados da entrada do diretorio)
+    //unsigned char d_type; - Tipo (Armazena o tipo da entrada do diretorio como: DT_REG (arquivo) e DT_DIR (diretorio))
+    //char d_name[]; - Nome (Array de caracteres que armazena o nome)
     struct dirent *entry;
 
-    //Loop para percorrer os diretórios de processos
+    //Loop para percorrer todos os diretorios de processos
     while ((entry = readdir(proc_dir)) != NULL) {
-        //Verifica se o nome do diretório é um número (PID)
+        //Verifica se o nome do diretorio é um número (PID)
         if (atoi(entry->d_name) > 0) {
             total_processes++;
 
-            //Faz o caminho completo do diretório do processo
+            //Criacao do caminho para o ficheiro "status" de cada processo
             char proc_path[512];
             if (snprintf(proc_path, sizeof(proc_path), "/proc/%s/status", entry->d_name) >= sizeof(proc_path)) {
-                fprintf(stderr, "Erro: Caminho do processo incompleto!\n");
+                fprintf(stderr, "Erro: Caminho do processo incorreto!\n");
                 exit(EXIT_FAILURE);
             }
-            //Abre o arquivo /proc/[PID]/status para obter o estado do processo
+
+            //Abre o ficheiro /proc/[PID]/status para obter o estado do processo
             FILE *status_file = fopen(proc_path, "r");
+
+            //Verifica se o ficheiro /proc/[PID]/status existe e o seu processo foi bem-sucedido
             if (status_file == NULL) {
                 perror("fopen");
                 exit(EXIT_FAILURE);
             }
 
-            //Lê o estado do processo
+            //Obtem o estado de cada processo e consoante este incrementa a variavel "running_processes"
             char status[256];
             while (fscanf(status_file, "%*s %s", status) == 1) {
                 if (strcmp(status, "R") == 0) {
@@ -61,30 +80,35 @@ void printTopInfo() {
                 }
             }
 
+            //Fecha o ficheiro no /proc/[PID]/status
             fclose(status_file);
         }
     }
 
-    //Fecha o diretório /proc onde se obtem as informações sobre os processos
+    //Fecha o diretorio /proc onde se obtem as informacoes sobre os processos
     closedir(proc_dir);
 
-    //Imprime as informações sobre os processos
+    //Mostra as informacoes obtidas sobre o total de processos e em execucao
     printf("Total de processos: %d\nProcessos em execução: %d\n", total_processes, running_processes);
 
-    //Abre novamente o diretório /proc para obter informações detalhadas sobre os processos em execução
+    //Abre novamente o diretorio /proc para obter informacoes detalhadas sobre os processos
     DIR *proc_dir_running = opendir("/proc");
+
+    //Verifica se o diretorio /proc existe e o seu processo foi bem-sucedido
     if (proc_dir_running == NULL) {
         perror("opendir");
         exit(EXIT_FAILURE);
     }
 
-    //Exibe informações detalhadas sobre os processos em execução
-    printf("\nProcessos em execução:\n");
+    //Exibe o titulo do comando "top", bem como o nome de cada coluna consoante a informacao desta
+    printf("\nProcessos\n");
     printf("%-8s %-8s %-20s %s\n", "PID", "STATE", "USERNAME", "COMMAND");
 
+    //Variavel relativa a quantidade de processos ja mostrados
     int count_processes = 0;
 
-    //Reinicializa o diretório de processos para percorrê-lo novamente
+    //TODO
+    //Reinicializa o diretorio de processos para percorrê-lo novamente
     rewinddir(proc_dir_running);
     while ((entry = readdir(proc_dir_running)) != NULL && count_processes < 20) {
         if (atoi(entry->d_name) > 0) {
@@ -128,26 +152,30 @@ void printTopInfo() {
             fclose(status_file);
         }
     }
+    //TODO
 
+    //Fecha o diretorio /proc onde se obtem as informacoes sobre os processos
     closedir(proc_dir_running);
 }
 
 void executeCommandTop() {
     char input;
 
+    //Enquanto que o input introduzido pelo utilizador for diferente de "q", repete as instrucoes dentro do "do"
     do {
-        //Chama as informações sobre o sistema e os processos
+        //Chama a funcao relativa as informacoes sobre o sistema e os processos
         printTopInfo();
 
-        //Espera 10 segundos antes de atualizar as informações
+        //Aguarda 10 segundos antes de atualizar as informações
         sleep(10);
 
         //Limpa a consola
         system("clear");
 
-        //Imprime a situacao do comando
+        //Mostra mensagem para terminar ou continuar a apresentar essas informacoes
         printf("Insira 'q' para terminar ou outra tecla para continuar: ");
-        //Lê o char introduzido pelo utilizador
+
+        //Le o caracter introduzido pelo utilizador
         scanf("%c", &input);
     } while (input != 'q');
 }
@@ -161,7 +189,7 @@ void executeCommand(char *cmd, char *args[]) {
         //Executa o comando
         execvp(cmd, args);
 
-        //Se o exec falhar, imprime uma mensagem de erro
+        //Se o exec falhar, mostra uma mensagem de erro
         perror("execvp");
         exit(EXIT_FAILURE);
     } else if (pid > 0) {
@@ -174,7 +202,7 @@ void executeCommand(char *cmd, char *args[]) {
             exit(EXIT_FAILURE);
         }
     } else {
-        //Se o fork falhar, imprime uma mensagem de erro
+        //Se o fork falhar, mostra uma mensagem de erro
         perror("fork");
         exit(EXIT_FAILURE);
     }
@@ -193,7 +221,7 @@ void executeCommandWithInputRedirection(char *cmd, char **args, char *inputFile)
             exit(EXIT_FAILURE);
         }
 
-        //Redireciona a entrada padrao para o arquivo
+        //Redireciona a entrada do ficheiro
         if (dup2(fd, STDIN_FILENO) == -1) {
             perror("dup2");
             close(fd);
@@ -206,7 +234,7 @@ void executeCommandWithInputRedirection(char *cmd, char **args, char *inputFile)
         //Executa o comando
         execvp(cmd, args);
 
-        //Se o exec falhar, imprime uma mensagem de erro
+        //Se o exec falhar, mostra uma mensagem de erro
         perror("execvp");
         exit(EXIT_FAILURE);
     } else if (pid > 0) {
@@ -219,7 +247,7 @@ void executeCommandWithInputRedirection(char *cmd, char **args, char *inputFile)
             exit(EXIT_FAILURE);
         }
     } else {
-        //Se o fork falhar, imprime uma mensagem de erro
+        //Se o fork falhar, mostra uma mensagem de erro
         perror("fork");
         exit(EXIT_FAILURE);
     }
@@ -238,7 +266,7 @@ void executeCommandWithOutputRedirection(char *cmd, char **args, char *outputFil
             exit(EXIT_FAILURE);
         }
 
-        //Redireciona a saida padrao para o arquivo
+        //Redireciona a saida para o ficheiro
         if (dup2(fd, STDOUT_FILENO) == -1) {
             perror("dup2");
             close(fd);
@@ -251,7 +279,7 @@ void executeCommandWithOutputRedirection(char *cmd, char **args, char *outputFil
         //Executa o comando
         execvp(cmd, args);
 
-        //Se o exec falhar, imprime uma mensagem de erro
+        //Se o exec falhar, mostra uma mensagem de erro
         perror("execvp");
         exit(EXIT_FAILURE);
     } else if (pid > 0) {
@@ -264,7 +292,7 @@ void executeCommandWithOutputRedirection(char *cmd, char **args, char *outputFil
             exit(EXIT_FAILURE);
         }
     } else {
-        //Se o fork falhar, imprime uma mensagem de erro
+        //Se o fork falhar, mostra uma mensagem de erro
         perror("fork");
         exit(EXIT_FAILURE);
     }
@@ -275,7 +303,7 @@ void executeCommandWithPiping(char *cmd1, char **args1, char *cmd2, char **args2
     pid_t pid1, pid2;
 
     if (pipe(pipefd) == -1) {
-        //Se o pipe falhar, imprime uma mensagem de erro
+        //Se o pipe falhar, mostra uma mensagem de erro
         perror("pipe");
         exit(EXIT_FAILURE);
     }
@@ -294,11 +322,11 @@ void executeCommandWithPiping(char *cmd1, char **args1, char *cmd2, char **args2
         //Executa o comando 1
         execvp(cmd1, args1);
 
-        //Se o exec do comando 1 falhar, imprime uma mensagem de erro
+        //Se o exec do comando 1 falhar, mostra uma mensagem de erro
         perror("execvp cmd1");
         exit(EXIT_FAILURE);
     } else if (pid1 < 0) {
-        //Se o fork do comando 1 falhar, imprime uma mensagem de erro
+        //Se o fork do comando 1 falhar, mostra uma mensagem de erro
         perror("fork cmd1");
         exit(EXIT_FAILURE);
     }
@@ -334,29 +362,28 @@ void executeCommandWithPiping(char *cmd1, char **args1, char *cmd2, char **args2
 }
 
 int main(int argc, char *argv[]) {
+    //Variavel relativa ao numero de argumentos sem contar com "mycmd"
     int args = argc - 1;
 
-    //Verifica se não existe argumentos além do comando
+    //Verifica se só existe 1 argumento e se este é "top"
     if (args == 1 && strcmp(argv[1], "top") == 0) {
         executeCommandTop();
         return 0;
     }
 
-    //Variáveis relativas aos nomes dos arquivos
+    //Variáveis relativas aos nomes dos ficheiros, presenca de operadores, operador e argumentos do comando
     char *inputFile = NULL;
     char *outputFile = NULL;
-
-    //Inicializa as flags
     int found = 0;
     char *operator = NULL;
     int argc_cmd1 = 0;
     int argc_cmd2 = 0;
 
-    //Aloca memória para os arrays de argumentos do comando
+    //Aloca memoria para os arrays de argumentos do comando
     char **argv_cmd1 = malloc((argc + 1) * sizeof(char *));
     char **argv_cmd2 = malloc((argc + 1) * sizeof(char *));
 
-    //Verifica se a alocação de memória foi bem-sucedida
+    //Verifica se a alocacao de memoria foi bem-sucedida
     if (argv_cmd1 == NULL || argv_cmd2 == NULL) {
         fprintf(stderr, "Erro ao alocar memória.\n");
         exit(EXIT_FAILURE);
@@ -364,50 +391,50 @@ int main(int argc, char *argv[]) {
 
     //Loop para percorrer os argumentos
     for (int i = 1; i < argc; i++) {
-        //Verifica se o argumento é um operador de redirecionamento ou um pipe
+        //Verifica se o argumento é um operador
         if (strcmp(argv[i], ">") == 0 || strcmp(argv[i], "<") == 0 || strcmp(argv[i], "|") == 0) {
             found = 1;
             operator = argv[i];
             continue;
         }
 
-        //Se não foi encontrado nenhum operador, adiciona ao contexto do cmd1
+        //Se nao for encontrado nenhum operador, adiciona ao array cmd1
         if (!found) {
             argv_cmd1[argc_cmd1++] = strdup(argv[i]);
         } else {
-            //Se um operador foi encontrado, adiciona ao contexto do cmd2
+            //Se foi encontrado um operador, adiciona ao array cmd2
             argv_cmd2[argc_cmd2++] = strdup(argv[i]);
         }
     }
 
-    //Adiciona NULL no final dos arrays para indicar o fim
+    //Adiciona NULL no fim dos arrays para indicar o fim
     argv_cmd1[argc_cmd1] = NULL;
     argv_cmd2[argc_cmd2] = NULL;
 
-    //Verifica se um operador foi encontrado
+    //Atraves da variavel "found" ve se foi encontrado algum argumento
     if (found) {
         if (strcmp(operator, "<") == 0) {
-            //Operador Input
+            //Operador referente ao input
             if (argc_cmd2 > 0) {
                 inputFile = argv_cmd2[0];
             }
             executeCommandWithInputRedirection(argv_cmd1[0], argv_cmd1, inputFile);
         } else if (strcmp(operator, ">") == 0) {
-            //Operador Output
+            //Operador referente ao output
             if (argc_cmd2 > 0) {
                 outputFile = argv_cmd2[0];
             }
             executeCommandWithOutputRedirection(argv_cmd1[0], argv_cmd1, outputFile);
         } else if (strcmp(operator, "|") == 0) {
-            //Operador Pipe
+            //Operador referente ao pipe
             executeCommandWithPiping(argv_cmd1[0], argv_cmd1, argv_cmd2[0], argv_cmd2);
         }
     } else {
-        //Nao foi encontrado nenhum operador logo, executa o comando de forma normal
+        //Caso nao tenha sido encontrado nenhum operador, executa o comando de forma normal
         executeCommand(argv_cmd1[0], argv_cmd1);
     }
 
-    //Libera a memória alocada anteriormente para evitar "memory leaks"
+    //Liberta a memoria alocada anteriormente para evitar "memory leaks"
     for (int i = 0; i < argc_cmd1; i++) {
         free(argv_cmd1[i]);
     }
