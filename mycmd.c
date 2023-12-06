@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <dirent.h>
+#include <pwd.h>
 
 void printTopInfo() {
     //Abre o ficheiro no /proc/loadavg para obter as informacoes acerca da carga media do CPU
@@ -130,12 +131,25 @@ void printTopInfo() {
             }
 
             //Variaveis para armazenar o estado, o username e o comando do processo
-            char status[256], username[256], cmdline[512];
+            char status[256], uid[256], username[256], cmdline[512];
             //Obtem o estado do processo
             while (fscanf(status_file, "%*s %s", status) == 1) {
                 if (strlen(status) == 1 && strcmp(status, "R") == 0) {
-                    //Obtem o username de cada processo
-                    fscanf(status_file, "%*s %*s %*s %*s %*s %*s %*s %s", username);
+                    // Obtem o UID (User ID) de cada processo
+                    fscanf(status_file, "%*s %s", uid);
+
+                    //Converte o UID para obter o nome do usuario de cada processo
+                    struct passwd *pwd = getpwuid(atoi(uid));
+
+                    //Copia o nome do usuario para a variável username
+                    if (pwd != NULL) {
+                        strncpy(username, pwd->pw_name, sizeof(username) - 1);
+                        username[sizeof(username) - 1] = '\0';  //Indicar onde terminar a string (nome de usuario)
+                    } else {
+                        // Se pwd for NULL, definimos como "Unknown"
+                        strncpy(username, "Unknown", sizeof(username) - 1);
+                        username[sizeof(username) - 1] = '\0';  //Indicar onde terminar a string (nome de usuario)
+                    }
 
                     //Criacao do caminho para o ficheiro "cmdline" de cada processo
                     if (snprintf(proc_path, sizeof(proc_path), "/proc/%s/cmdline", entry->d_name) >= sizeof(proc_path)) {
@@ -153,7 +167,7 @@ void printTopInfo() {
                     }
 
                     //Obtem a linha de comando de cada processo
-                    fscanf(cmdline_file, "%s", cmdline);
+                    fgets(cmdline, sizeof(cmdline), cmdline_file);
 
                     //Fecha o ficheiro no /proc/[PID]/cmdline
                     fclose(cmdline_file);
@@ -195,7 +209,7 @@ void printTopInfo() {
             }
 
             //Variaveis para armazenar o estado, o username e o comando do processo
-            char status[256], username[256], cmdline[512];
+            char status[256], uid[256], username[256], cmdline[512];
             //Obtem o estado do processo
             while (fscanf(status_file, "%*s %s", status) == 1) {
                 //S: Sleeping
@@ -204,7 +218,21 @@ void printTopInfo() {
                 //T: Stopped
                 //I: Idle
                 if (strlen(status) == 1 && strchr("SDZTI", status[0]) != NULL) {
-                    fscanf(status_file, "%*s %*s %*s %*s %*s %*s %*s %s", username);
+                    // Obtem o UID (User ID) de cada processo
+                    fscanf(status_file, "%*s %s", uid);
+
+                    //Converte o UID para obter o nome do usuario de cada processo
+                    struct passwd *pwd = getpwuid(atoi(uid));
+
+                    //Copia o nome do usuario para a variável username
+                    if (pwd != NULL) {
+                        strncpy(username, pwd->pw_name, sizeof(username) - 1);
+                        username[sizeof(username) - 1] = '\0';  //Indicar onde terminar a string (nome de usuario)
+                    } else {
+                        // Se pwd for NULL, definimos como "Unknown"
+                        strncpy(username, "Unknown", sizeof(username) - 1);
+                        username[sizeof(username) - 1] = '\0';  //Indicar onde terminar a string (nome de usuario)
+                    }
 
                     //Criacao do caminho para o ficheiro "cmdline" de cada processo
                     if (snprintf(proc_path, sizeof(proc_path), "/proc/%s/cmdline", entry->d_name) >= sizeof(proc_path)) {
@@ -222,7 +250,7 @@ void printTopInfo() {
                     }
 
                     //Obtem a linha de comando de cada processo
-                    fscanf(cmdline_file, "%s", cmdline);
+                    fgets(cmdline, sizeof(cmdline), cmdline_file);
 
                     //Fecha o ficheiro no /proc/[PID]/cmdline
                     fclose(cmdline_file);
