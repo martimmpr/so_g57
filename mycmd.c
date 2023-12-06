@@ -104,13 +104,13 @@ void printTopInfo() {
     printf("\nProcessos\n");
     printf("%-8s %-8s %-20s %s\n", "PID", "STATE", "USERNAME", "COMMAND");
 
-    //Variavel relativa a quantidade de processos ja mostrados
-    int count_processes = 0;
+    //Variaveis relativas a quantidade de processos em execucao e nao
+    int count_running_processes = 0, count_non_running_processes = 0;
 
     //Volta ao inicio do diretorio de processos para percorre-lo novamente
     rewinddir(proc_dir_running);
     //Loop para percorrer todos os diretorios de processos
-    while ((entry = readdir(proc_dir_running)) != NULL && count_processes < 20) {
+    while ((entry = readdir(proc_dir_running)) != NULL && (count_running_processes + count_non_running_processes) < 20) {
         //Verifica se o nome do diretorio é um número (PID)
         if (atoi(entry->d_name) > 0) {
             //Criacao do caminho para o ficheiro "status" de cada processo
@@ -129,16 +129,15 @@ void printTopInfo() {
                 exit(EXIT_FAILURE);
             }
 
-            //Obtem o estado de cada processo
-            char status[256];
+            //Variaveis para armazenar o estado, o username e o comando do processo
+            char status[256], username[256], cmdline[512];
+            //Obtem o estado do processo
             while (fscanf(status_file, "%*s %s", status) == 1) {
-                if (strcmp(status, "R") == 0) {
+                if (strlen(status) == 1 && strcmp(status, "R") == 0) {
                     //Obtem o username de cada processo
-                    char username[256];
                     fscanf(status_file, "%*s %*s %*s %*s %*s %*s %*s %s", username);
 
                     //Criacao do caminho para o ficheiro "cmdline" de cada processo
-                    char cmdline[512];
                     if (snprintf(proc_path, sizeof(proc_path), "/proc/%s/cmdline", entry->d_name) >= sizeof(proc_path)) {
                         fprintf(stderr, "Erro: Caminho do processo incompleto!\n");
                         exit(EXIT_FAILURE);
@@ -162,8 +161,77 @@ void printTopInfo() {
                     //Imprime as informações detalhadas do processo conforme as colunas
                     printf("%-8s %-8s %-20s %s\n", entry->d_name, status, username, cmdline);
 
-                    //Incrementa a quantidade de processos ja a serem exibidos
-                    count_processes++;
+                    //Incrementa a quantidade de processos em execucao ja a serem exibidos
+                    count_running_processes++;
+                    break;
+                }
+            }
+
+            //Fecha o ficheiro no /proc/[PID]/status
+            fclose(status_file);
+        }
+    }
+
+    //Volta ao inicio do diretorio de processos para percorre-lo novamente
+    rewinddir(proc_dir_running);
+    //Loop para percorrer todos os diretorios de processos
+    while ((entry = readdir(proc_dir_running)) != NULL && count_non_running_processes < (20 - count_running_processes)) {
+        //Verifica se o nome do diretorio é um número (PID)
+        if (atoi(entry->d_name) > 0) {
+            //Criacao do caminho para o ficheiro "status" de cada processo
+            char proc_path[512];
+            if (snprintf(proc_path, sizeof(proc_path), "/proc/%s/status", entry->d_name) >= sizeof(proc_path)) {
+                fprintf(stderr, "Erro: Caminho do processo incompleto!\n");
+                exit(EXIT_FAILURE);
+            }
+            
+            //Abre o ficheiro /proc/[PID]/status para obter o estado do processo
+            FILE *status_file = fopen(proc_path, "r");
+
+            //Verifica se o ficheiro /proc/[PID]/status existe e o seu processo foi bem-sucedido
+            if (status_file == NULL) {
+                perror("fopen");
+                exit(EXIT_FAILURE);
+            }
+
+            //Variaveis para armazenar o estado, o username e o comando do processo
+            char status[256], username[256], cmdline[512];
+            //Obtem o estado do processo
+            while (fscanf(status_file, "%*s %s", status) == 1) {
+                //S: Sleeping
+                //D: Uninterruptible Sleep
+                //Z: Zombie
+                //T: Stopped
+                //I: Idle
+                if (strlen(status) == 1 && strchr("SDZTI", status[0]) != NULL) {
+                    fscanf(status_file, "%*s %*s %*s %*s %*s %*s %*s %s", username);
+
+                    //Criacao do caminho para o ficheiro "cmdline" de cada processo
+                    if (snprintf(proc_path, sizeof(proc_path), "/proc/%s/cmdline", entry->d_name) >= sizeof(proc_path)) {
+                        fprintf(stderr, "Erro: Caminho do processo incompleto!\n");
+                        exit(EXIT_FAILURE);
+                    }
+
+                    //Abre o ficheiro /proc/[PID]/cmdline para obter o estado do processo
+                    FILE *cmdline_file = fopen(proc_path, "r");
+
+                    //Verifica se o ficheiro /proc/[PID]/cmdline existe e o seu processo foi bem-sucedido
+                    if (cmdline_file == NULL) {
+                        perror("fopen");
+                        exit(EXIT_FAILURE);
+                    }
+
+                    //Obtem a linha de comando de cada processo
+                    fscanf(cmdline_file, "%s", cmdline);
+
+                    //Fecha o ficheiro no /proc/[PID]/cmdline
+                    fclose(cmdline_file);
+
+                    //Imprime as informações detalhadas do processo conforme as colunas
+                    printf("%-8s %-8s %-20s %s\n", entry->d_name, status, username, cmdline);
+
+                    //Incrementa a quantidade de processos em outros estados sem ser execucao ja a serem exibidos
+                    count_non_running_processes++;
                     break;
                 }
             }
