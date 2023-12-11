@@ -278,14 +278,14 @@ void executeCommandTop() {
 
     //Enquanto que o input introduzido pelo utilizador for diferente de "q", repete as instrucoes dentro do "do"
     do {
+        //Limpa a consola
+        system("clear");
+
         //Chama a funcao relativa as informacoes sobre o sistema e os processos
         printTopInfo();
 
         //Aguarda 10 segundos antes de atualizar as informações
         sleep(10);
-
-        //Limpa a consola
-        system("clear");
 
         //Mostra mensagem para terminar ou continuar a apresentar essas informacoes
         printf("Insira 'q' para terminar ou outra tecla para continuar: ");
