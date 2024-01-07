@@ -138,17 +138,24 @@ void printTopInfo() {
                     // Obtem o UID (User ID) de cada processo
                     fscanf(status_file, "%*s %s", uid);
 
-                    //Converte o UID para obter o nome do usuario de cada processo
+                    //Converte o UID para obter uma estrutura de dados que armazena as informacoes do usuario de cada processo
+                    //char   *pw_name; - Nome do usuario
+                    //char   *pw_passwd; - Senha criptografada
+                    //uid_t   pw_uid; - User ID
+                    //gid_t   pw_gid; - Group ID Principal
+                    //char   *pw_gecos; - Informacoes adicionais (Gecos)
+                    //char   *pw_dir; - Diretorio inicial
+                    //char   *pw_shell; - Shell
                     struct passwd *pwd = getpwuid(atoi(uid));
 
-                    //Copia o nome do usuario para a variável username
+                    //Copia o nome do usuario para a variavel username
                     if (pwd != NULL) {
                         strncpy(username, pwd->pw_name, sizeof(username) - 1);
-                        username[sizeof(username) - 1] = '\0';  //Indicar onde terminar a string (nome de usuario)
+                        username[sizeof(username) - 1] = '\0';  //Indica onde termina o nome do usuario
                     } else {
-                        // Se pwd for NULL, definimos como "Unknown"
-                        strncpy(username, "Unknown", sizeof(username) - 1);
-                        username[sizeof(username) - 1] = '\0';  //Indicar onde terminar a string (nome de usuario)
+                        // Se pwd for NULL, definimos como "Desconhecido"
+                        strncpy(username, "Desconhecido", sizeof(username) - 1);
+                        username[sizeof(username) - 1] = '\0';  //Indica onde termina o nome do usuario
                     }
 
                     //Criacao do caminho para o ficheiro "cmdline" de cada processo
@@ -221,17 +228,24 @@ void printTopInfo() {
                     // Obtem o UID (User ID) de cada processo
                     fscanf(status_file, "%*s %s", uid);
 
-                    //Converte o UID para obter o nome do usuario de cada processo
+                    //Converte o UID para obter uma estrutura de dados que armazena as informacoes do usuario de cada processo
+                    //char   *pw_name; - Nome do usuario
+                    //char   *pw_passwd; - Senha criptografada
+                    //uid_t   pw_uid; - User ID
+                    //gid_t   pw_gid; - Group ID Principal
+                    //char   *pw_gecos; - Informacoes adicionais (Gecos)
+                    //char   *pw_dir; - Diretorio inicial
+                    //char   *pw_shell; - Shell
                     struct passwd *pwd = getpwuid(atoi(uid));
 
-                    //Copia o nome do usuario para a variável username
+                    //Copia o nome do usuario para a variavel username
                     if (pwd != NULL) {
                         strncpy(username, pwd->pw_name, sizeof(username) - 1);
-                        username[sizeof(username) - 1] = '\0';  //Indicar onde terminar a string (nome de usuario)
+                        username[sizeof(username) - 1] = '\0';  //Indica onde termina o nome do usuario
                     } else {
-                        // Se pwd for NULL, definimos como "Unknown"
-                        strncpy(username, "Unknown", sizeof(username) - 1);
-                        username[sizeof(username) - 1] = '\0';  //Indicar onde terminar a string (nome de usuario)
+                        // Se pwd for NULL, definimos como "Desconhecido"
+                        strncpy(username, "Desconhecido", sizeof(username) - 1);
+                        username[sizeof(username) - 1] = '\0';  //Indica onde termina o nome do usuario
                     }
 
                     //Criacao do caminho para o ficheiro "cmdline" de cada processo
