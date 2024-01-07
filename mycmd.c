@@ -1,12 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <fcntl.h>
-#include <string.h>
-#include <dirent.h>
-#include <pwd.h>
+#include <stdio.h> //Contem funcoes para entrada e saida de dados
+#include <stdlib.h> //Contem funcoes padrao, como alocacao de memoria, controlo sobre o processo, entre outros
+#include <unistd.h> //Contem funcoes relacionadas ao sistema UNIX
+#include <sys/types.h> //Obtem tipos de dados utilizados em sistemas UNIX
+#include <sys/wait.h> //Contem funcoes relacionadas a espera e manipulacao de processos filhos
+#include <fcntl.h> //Contem funcoes para controlar propriedades de ficheiros (abrir, fechar e manipular descritores)
+#include <string.h> //Contem funcoes para manipulacao de strings
+#include <dirent.h> //Contem funcoes para manipulacao e leitura de diretorios
+#include <pwd.h> //Contem funcoes para obter informacoes sobre utilizadores e senhas
 
 void printTopInfo() {
     //Abre o ficheiro no /proc/loadavg para obter as informacoes acerca da carga media do CPU
